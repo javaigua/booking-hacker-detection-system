@@ -69,7 +69,7 @@ public class LogSignatureDetector extends AbstractActor {
     }
 
     public String getLogSignatureId() {
-      return new StringBuffer(ip).append("-").append(username).toString();
+      return new StringBuffer().append(ip).append("-").append(username).toString();
     }
 
     @Override
