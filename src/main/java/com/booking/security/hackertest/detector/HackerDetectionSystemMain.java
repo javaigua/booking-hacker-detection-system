@@ -39,7 +39,7 @@ public class HackerDetectionSystemMain {
       
       Future<Object> future = Patterns.ask(actor1, LogSignatureDetector.GET_LOG_SIGNATURE, timeout);
       LogSignatureDetector.LogSignature result = (LogSignatureDetector.LogSignature) Await.result(future, timeout.duration());
-      System.out.println(">>> result: " + result.lines.toString());
+      System.out.println(">>> result: " + result.logLine.toString());
       
     } catch (Exception e) {
       System.out.println(">>> Error <<<" + e.toString());

@@ -1,7 +1,6 @@
 package com.booking.security.hackertest.detector.actors
 
 import scala.concurrent.duration._
-import scala.collection.JavaConverters._
 
 import java.util.Arrays
 
@@ -77,8 +76,7 @@ class LogSignatureDetectorSpec extends MultiNodeSpec(LogSignatureDetectorSpec) w
       awaitAssert {
         logSignatureDetector ! LogSignatureDetector.GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
-        logSignature.lines.asScala.toList should be(List(
-            new LogLine(fixedIp, fixedUsername, Arrays.asList())))
+        logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, Arrays.asList()))
       }
 
       enterBarrier("after-2")
@@ -100,8 +98,7 @@ class LogSignatureDetectorSpec extends MultiNodeSpec(LogSignatureDetectorSpec) w
         logSignatureDetector ! LogSignatureDetector.GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
         // println(">>>>>>>>>>>>>>>>>>>>> Found data: " + logSignature.lines.asScala.toList);
-        logSignature.lines.asScala.toList should be(List(
-            new LogLine(fixedIp, fixedUsername, Arrays.asList())))
+        logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, Arrays.asList()))
       }
 
       enterBarrier("after-3")

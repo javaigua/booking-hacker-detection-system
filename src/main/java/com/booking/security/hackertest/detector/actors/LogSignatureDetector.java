@@ -48,10 +48,10 @@ public class LogSignatureDetector extends AbstractActor {
 
   // Log signature message
   public static class LogSignature {
-    public final List<LogLine> lines;
+    public final LogLine logLine;
 
-    public LogSignature(List<LogLine> lines) {
-      this.lines = lines;
+    public LogSignature(LogLine logLine) {
+      this.logLine = logLine;
     }
   }
 
@@ -136,7 +136,7 @@ public class LogSignatureDetector extends AbstractActor {
 
   public LogSignatureDetector(String logSignatureId) {
     this.logSignatureId = logSignatureId;
-    this.dataKey = LWWMapKey.create(logSignatureId);
+    this.dataKey = LWWMapKey.create("logSignature-" + logSignatureId);
   }
 
   // Main message receiver for this actor
@@ -163,8 +163,7 @@ public class LogSignatureDetector extends AbstractActor {
 
   private void receiveGetLogSignature() {
     Optional<Object> ctx = Optional.of(sender());
-    replicator.tell(new Replicator.Get<>(dataKey, readMajority, ctx),
-        self());
+    replicator.tell(new Replicator.Get<>(dataKey, readMajority, ctx), self());
   }
 
   private boolean isResponseToGetLogSignature(GetResponse<?> response) {
@@ -174,19 +173,21 @@ public class LogSignatureDetector extends AbstractActor {
 
   private void receiveGetSuccess(GetSuccess<LWWMap<String, LogLine>> g) {
     List<LogLine> logLines = new ArrayList<>(g.dataValue().getEntries().values());
-    System.out.println(">>>>> logLines: " + logLines.toString());
     ActorRef replyTo = (ActorRef) g.getRequest().get();
-    replyTo.tell(new LogSignature(logLines), self());
+    if (logLines != null && logLines.size() == 1) {
+      replyTo.tell(new LogSignature(logLines.get(0)), self());
+    }
+    else if (logLines != null && logLines.size() > 1) {
+      System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " + logLines);
+    }
   }
 
   private void receiveNotFound(NotFound<LWWMap<String, LogLine>> n) {
-    System.out.println(">>>>> not found!");
     ActorRef replyTo = (ActorRef) n.getRequest().get();
-    replyTo.tell(new LogSignature(new ArrayList<>()), self());
+    replyTo.tell(new LogSignature(null), self());
   }
 
   private void receiveGetFailure(GetFailure<LWWMap<String, LogLine>> f) {
-    System.out.println(">>>>> failure!");
     // ReadMajority failure, try again with local read
     Optional<Object> ctx = Optional.of(sender());
     replicator.tell(new Replicator.Get<>(dataKey, Replicator.readLocal(), ctx), self());
