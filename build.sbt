@@ -11,7 +11,7 @@ val `akka-sample-distributed-data-java` = project
     scalaVersion := "2.12.2",
     scalacOptions in Compile ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlog-reflective-calls", "-Xlint"),
     javacOptions in Compile ++= Seq("-Xlint:unchecked", "-Xlint:deprecation", "-Xdiags:verbose"),
-    javaOptions in run ++= Seq("-Xms128m", "-Xmx1024m"),
+    javaOptions in run ++= Seq("-Xms128m", "-Xmx2048m"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "com.typesafe.akka" %% "akka-remote" % akkaVersion,
