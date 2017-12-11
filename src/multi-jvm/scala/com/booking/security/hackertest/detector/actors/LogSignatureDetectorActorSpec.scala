@@ -33,9 +33,9 @@ class LogSignatureDetectorActorSpecMultiJvmNode1 extends LogSignatureDetectorAct
 class LogSignatureDetectorActorSpecMultiJvmNode2 extends LogSignatureDetectorActorSpec
 class LogSignatureDetectorActorSpecMultiJvmNode3 extends LogSignatureDetectorActorSpec
 
-class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorSpec) with STMultiNodeSpec with ImplicitSender {
-  import LogSignatureDetectorSpec._
-  import LogSignatureDetector._
+class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorActorSpec) with STMultiNodeSpec with ImplicitSender {
+  import LogSignatureDetectorActorSpec._
+  import LogSignatureDetectorActor._
 
   override def initialParticipants = roles.size
 
@@ -45,7 +45,7 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorSp
   val logSignatureId: String = fixedIp+"-"+fixedUsername
 
   val cluster = Cluster(system)
-  val logSignatureDetector = system.actorOf(LogSignatureDetector.props(logSignatureId))
+  val logSignatureDetector = system.actorOf(LogSignatureDetectorActor.props(logSignatureId))
 
   def join(from: RoleName, to: RoleName): Unit = {
     runOn(from) {
@@ -69,12 +69,12 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorSp
 
     "handle updates directly after start" in within(15.seconds) {
       runOn(node1) {
-        logSignatureDetector ! new LogSignatureDetector.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
       }
       enterBarrier("updates-done")
 
       awaitAssert {
-        logSignatureDetector ! LogSignatureDetector.GET_LOG_SIGNATURE
+        logSignatureDetector ! LogSignatureDetectorActor.GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
         logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, Arrays.asList()))
       }
@@ -84,18 +84,18 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorSp
 
     "handle updates from different nodes in the cluster" in within(15.seconds) {
       runOn(node1) {
-        logSignatureDetector ! new LogSignatureDetector.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
       }
       runOn(node2) {
-        logSignatureDetector ! new LogSignatureDetector.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
       }
       runOn(node3) {
-        logSignatureDetector ! new LogSignatureDetector.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
       }
       enterBarrier("updates-done")
 
       awaitAssert {
-        logSignatureDetector ! LogSignatureDetector.GET_LOG_SIGNATURE
+        logSignatureDetector ! LogSignatureDetectorActor.GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
         // println(">>>>>>>>>>>>>>>>>>>>> Found data: " + logSignature.lines.asScala.toList);
         logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, Arrays.asList()))
