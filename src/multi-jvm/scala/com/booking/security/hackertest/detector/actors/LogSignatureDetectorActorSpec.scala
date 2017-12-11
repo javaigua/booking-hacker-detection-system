@@ -17,7 +17,7 @@ import akka.testkit._
 import com.typesafe.config.ConfigFactory
 
 
-object LogSignatureDetectorSpec extends MultiNodeConfig {
+object LogSignatureDetectorActorSpec extends MultiNodeConfig {
   val node1 = role("node-1")
   val node2 = role("node-2")
   val node3 = role("node-3")
@@ -29,11 +29,11 @@ object LogSignatureDetectorSpec extends MultiNodeConfig {
     """))
 }
 
-class LogSignatureDetectorSpecMultiJvmNode1 extends LogSignatureDetectorSpec
-class LogSignatureDetectorSpecMultiJvmNode2 extends LogSignatureDetectorSpec
-class LogSignatureDetectorSpecMultiJvmNode3 extends LogSignatureDetectorSpec
+class LogSignatureDetectorActorSpecMultiJvmNode1 extends LogSignatureDetectorActorSpec
+class LogSignatureDetectorActorSpecMultiJvmNode2 extends LogSignatureDetectorActorSpec
+class LogSignatureDetectorActorSpecMultiJvmNode3 extends LogSignatureDetectorActorSpec
 
-class LogSignatureDetectorSpec extends MultiNodeSpec(LogSignatureDetectorSpec) with STMultiNodeSpec with ImplicitSender {
+class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorSpec) with STMultiNodeSpec with ImplicitSender {
   import LogSignatureDetectorSpec._
   import LogSignatureDetector._
 

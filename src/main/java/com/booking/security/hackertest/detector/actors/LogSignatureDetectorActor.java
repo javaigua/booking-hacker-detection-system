@@ -36,7 +36,7 @@ import akka.cluster.ddata.Replicator.WriteConsistency;
 import akka.cluster.ddata.Replicator.WriteMajority;
 
 @SuppressWarnings("unchecked")
-public class LogSignatureDetector extends AbstractActor {
+public class LogSignatureDetectorActor extends AbstractActor {
   
   // Remove stale dates message
   public static final String REMOVE_STALE_DATA = "removeStaleData";
@@ -135,7 +135,7 @@ public class LogSignatureDetector extends AbstractActor {
 
   // Actor constructor
   public static Props props(String logSignatureId) {
-    return Props.create(LogSignatureDetector.class, logSignatureId);
+    return Props.create(LogSignatureDetectorActor.class, logSignatureId);
   }
 
   // Read/write majority config for distributed data
@@ -153,7 +153,7 @@ public class LogSignatureDetector extends AbstractActor {
   private final String logSignatureId;
   private final Key<LWWMap<String, LogLine>> dataKey;
 
-  public LogSignatureDetector(String logSignatureId) {
+  public LogSignatureDetectorActor(String logSignatureId) {
     this.logSignatureId = logSignatureId;
     this.dataKey = LWWMapKey.create(logSignatureId);
   }
@@ -197,13 +197,13 @@ public class LogSignatureDetector extends AbstractActor {
 
   private boolean isResponseToGetData(GetResponse<?> response) {
     return response.key().equals(dataKey) && 
-        (response.getRequest().orElse(null) instanceof LogSignatureDetector.GetDataCommand &&
-          ((LogSignatureDetector.GetDataCommand) response.getRequest().get()).actorRef instanceof ActorRef);
+        (response.getRequest().orElse(null) instanceof LogSignatureDetectorActor.GetDataCommand &&
+          ((LogSignatureDetectorActor.GetDataCommand) response.getRequest().get()).actorRef instanceof ActorRef);
   }
 
   private void receiveGetSuccess(GetSuccess<LWWMap<String, LogLine>> g) {
     List<LogLine> logLines = new ArrayList<>(g.dataValue().getEntries().values());
-    GetDataCommand command = (LogSignatureDetector.GetDataCommand) g.getRequest().get();
+    GetDataCommand command = (LogSignatureDetectorActor.GetDataCommand) g.getRequest().get();
     
     if (GET_LOG_SIGNATURE.equals(command.message)) {
       ActorRef replyTo = command.actorRef;
@@ -234,14 +234,14 @@ public class LogSignatureDetector extends AbstractActor {
   }
 
   private void receiveNotFound(NotFound<LWWMap<String, LogLine>> n) {
-    GetDataCommand command = (LogSignatureDetector.GetDataCommand) n.getRequest().get();
+    GetDataCommand command = (LogSignatureDetectorActor.GetDataCommand) n.getRequest().get();
     ActorRef replyTo = command.actorRef;
     replyTo.tell(new LogSignature(null), self());
   }
 
   private void receiveGetFailure(GetFailure<LWWMap<String, LogLine>> f) {
     // ReadMajority failure, try again with local read
-    GetDataCommand command = (LogSignatureDetector.GetDataCommand) f.getRequest().get();
+    GetDataCommand command = (LogSignatureDetectorActor.GetDataCommand) f.getRequest().get();
     Optional<Object> ctx = Optional.of(new GetDataCommand(sender(), command.message));
     replicator.tell(new Replicator.Get<>(dataKey, Replicator.readLocal(), ctx), self());
   }
