@@ -60,10 +60,29 @@ public class LogSignatureDetectorActor extends AbstractActor {
     public LogSignature(LogLine logLine) {
       this.logLine = logLine;
     }
+    
+    public String getLogSignatureId() {
+      if (logLine != null) {
+        return logLine.getLogSignatureId();
+      }
+      return null;
+    }
+    
+    public int countAnomalies() {
+      if (logLine != null) {
+        return logLine.getDatesCount();
+      }
+      return 0;
+    }
+    
+    public boolean isAbovePermitedThreshold() {
+      return countAnomalies() > 5;
+    }
+    
   }
   
   // Get data command
-  public static class GetDataCommand {
+  private static class GetDataCommand {
     public final ActorRef actorRef;
     public final String message;
 
@@ -88,6 +107,13 @@ public class LogSignatureDetectorActor extends AbstractActor {
 
     public String getLogSignatureId() {
       return new StringBuffer().append(ip).append("-").append(username).toString();
+    }
+    
+    public int getDatesCount() {
+      if (dates != null) {
+        return dates.size();
+      }
+      return 0;
     }
 
     @Override
