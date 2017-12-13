@@ -281,14 +281,16 @@ public class LogSignatureDetectorActor extends AbstractActor {
   private void receiveAddLogLine(AddLogLine add) {
     System.out.println("{ status: processing_add_Log_line, logLine: " + add.logLine.toString() + " }");
     Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
-        logSignature -> updateLogSignature(logSignature, truncateToMinutesPrecision(add.logLine)));
+        logSignature -> updateLogSignature(logSignature, add.logLine));
     replicator.tell(update, self());
   }
 
   private LWWMap<String, LogLine> updateLogSignature(LWWMap<String, LogLine> data, LogLine logLine) {
     if (data.contains(logLine.getLogSignatureId())) {
       LogLine existingLogLine = data.get(logLine.getLogSignatureId()).get();
+      // concat and truncate dates to minute precision so we avoid storing more than needed
       Set<Long> newDates = Stream.concat(existingLogLine.dates.stream(), logLine.dates.stream())
+        .map(date -> Instant.ofEpochMilli(date).truncatedTo(ChronoUnit.MINUTES).toEpochMilli())
         .collect(Collectors.toSet());
       LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
       return data.put(node, logLine.getLogSignatureId(), newLogLine);
@@ -310,14 +312,6 @@ public class LogSignatureDetectorActor extends AbstractActor {
         throw new IllegalStateException("Unexpected failure: " + f);
       })
       .build();
-  }
-  
-  // truncate dates to minute precision so we avoid storing more than needed
-  private LogLine truncateToMinutesPrecision(LogLine logLine) {
-    Set<Long> newDates = logLine.dates.stream()
-      .map(date -> Instant.ofEpochMilli(date).truncatedTo(ChronoUnit.MINUTES).toEpochMilli())
-      .collect(Collectors.toSet());
-    return new LogLine(logLine.ip, logLine.username, newDates);
   }
 
 }
