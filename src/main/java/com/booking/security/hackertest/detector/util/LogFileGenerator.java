@@ -10,10 +10,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class LogFileGenerator {
   public static void main(String[] args) {
-    System.out.println("{ status: generating_log_file }");
-    final String DEFAULT_FILE_NAME = "login.log";
-    
     // Usage and default param values
+    final String DEFAULT_FILE_NAME = "login.log";
     String fileName = DEFAULT_FILE_NAME;
     if(args.length != 0 && args.length > 1) {
       throw new IllegalArgumentException("Usage: LogFileGenerator [path]");
@@ -25,6 +23,7 @@ public class LogFileGenerator {
     FileWriter fileWriter = null;
     
     try {
+      System.out.println("{ status: generating_log_file, file: " + fileName + " }");
       ThreadLocalRandom r = ThreadLocalRandom.current();
       File file = new File(fileName);
       
