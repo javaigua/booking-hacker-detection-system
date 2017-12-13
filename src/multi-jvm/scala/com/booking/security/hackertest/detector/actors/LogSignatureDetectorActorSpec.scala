@@ -1,7 +1,9 @@
 package com.booking.security.hackertest.detector.actors
 
-import scala.concurrent.duration._
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
+import scala.concurrent.duration._
 import scala.collection.JavaConverters._
 
 import akka.cluster.Cluster
@@ -11,11 +13,9 @@ import akka.cluster.ddata.Replicator.ReplicaCount
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeConfig
 import akka.remote.testkit.MultiNodeSpec
-
 import akka.testkit._
 
 import com.typesafe.config.ConfigFactory
-
 
 object LogSignatureDetectorActorSpec extends MultiNodeConfig {
   val node1 = role("node-1")
@@ -43,9 +43,14 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorAc
   val fixedUsername: String = "John.Smith"
   val fixedDate: Long = 1507365137L
   val logSignatureId: String = fixedIp+"-"+fixedUsername
+  val trucatedFixedDate: Long = truncateEpochToMinutesPrecision(fixedDate)
 
   val cluster = Cluster(system)
   val logSignatureDetector = system.actorOf(LogSignatureDetectorActor.props(logSignatureId))
+
+  def truncateEpochToMinutesPrecision(epoch: Long): Long = {
+    Instant.ofEpochMilli(fixedDate).truncatedTo(ChronoUnit.MINUTES).toEpochMilli()
+  }
 
   def join(from: RoleName, to: RoleName): Unit = {
     runOn(from) {
@@ -69,40 +74,38 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorAc
 
     "handle updates directly after start" in within(15.seconds) {
       runOn(node1) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
+        logSignatureDetector ! new AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       enterBarrier("updates-done")
 
       awaitAssert {
-        logSignatureDetector ! LogSignatureDetectorActor.GET_LOG_SIGNATURE
+        logSignatureDetector ! GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
         logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
-        logSignature.logLine.dates should be(setAsJavaSet(Set(fixedDate)))
+        logSignature.logLine.dates should be(setAsJavaSet(Set(trucatedFixedDate)))
       }
-
       enterBarrier("after-2")
     }
 
     "handle updates from different nodes in the cluster" in within(15.seconds) {
       runOn(node1) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
+        logSignatureDetector ! new AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       runOn(node2) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
+        logSignatureDetector ! new AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       runOn(node3) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
+        logSignatureDetector ! new AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       enterBarrier("updates-done")
 
       awaitAssert {
-        logSignatureDetector ! LogSignatureDetectorActor.GET_LOG_SIGNATURE
+        logSignatureDetector ! GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
         // println(">>>>>>>>>>>>>>>>>>>>> Found data: " + logSignature.logLine);
         logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
-        logSignature.logLine.dates should be(setAsJavaSet(Set(fixedDate)))
+        logSignature.logLine.dates should be(setAsJavaSet(Set(trucatedFixedDate)))
       }
-
       enterBarrier("after-3")
     }
 

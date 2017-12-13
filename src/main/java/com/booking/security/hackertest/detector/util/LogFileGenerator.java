@@ -31,10 +31,10 @@ public class LogFileGenerator {
       fileWriter = new FileWriter(file.getAbsoluteFile(), true);
       bufferedWriter = new BufferedWriter(fileWriter);
       
-      for(int i = 0; i < 1000000; i++) {
+      for(int i = 0; i < 100000; i++) {
         // file parts
         Long lineDate = LocalDateTime.now().atOffset(ZoneOffset.UTC).toInstant().toEpochMilli();
-        String lineIp = new StringBuffer().append(r.nextInt(1, 256)).append(".").append(r.nextInt(1, 120))
+        String lineIp = new StringBuffer().append(r.nextInt(1, 256)).append(".").append(r.nextInt(1, 128))
           .append(".").append(r.nextInt(1, 2)).append(".").append(r.nextInt(1, 2)).toString();
         String lineAction = "SUCCESS";
         

@@ -61,7 +61,7 @@ public class HackerDetectionSystemMain {
     final FiniteDuration pollingInterval = FiniteDuration.create(250, TimeUnit.MILLISECONDS);
     
     try {
-      System.out.println("{ status: fetching_log, file: " + fs.getPath(fileName) + " }");
+      System.out.println("{ status: detecting_anomalies, file: " + fs.getPath(fileName) + " }");
       FileTailSource.createLines(fs.getPath(fileName), maxLineSize, pollingInterval).runForeach((line) -> {
         try {
           // Parsing log line
@@ -76,12 +76,13 @@ public class HackerDetectionSystemMain {
           String lineIp = res[1];
           String lineUsername = res[2];
           String lineAction = res[3];
-          String logSignatureId = new StringBuffer().append(lineIp).append("-").append(lineUsername).toString();
+          
+          // Log line and signature abstraction of parsed data
+          LogLine newLogLine = new LogLine(lineIp, lineUsername, new HashSet<>(Arrays.asList(lineDate)));
+          String logSignatureId = newLogLine.getLogSignatureId();
           
           // Processing only failed ones
           if (!"SUCCESS".equalsIgnoreCase(lineAction)) {
-            System.out.println("{ status: processing_line, line: " + line + " }");
-            
             // Creating or getting actor for log signature
             Future<ActorRef> actorFuture = system.actorSelection("/user/" + logSignatureId).resolveOne(timeout);
             actorFuture.onComplete(new OnComplete<ActorRef>() {
@@ -92,15 +93,14 @@ public class HackerDetectionSystemMain {
                 }
                 
                 // Sending add log line message to actor
-                actor.tell(new LogSignatureDetectorActor.AddLogLine(
-                  new LogLine(lineIp, lineUsername, new HashSet<>(Arrays.asList(lineDate)))), ActorRef.noSender());
+                actor.tell(new AddLogLine(newLogLine), ActorRef.noSender());
                 
                 // Asking about the log line signature processing
                 Future<Object> askFuture = Patterns.ask(actor, LogSignatureDetectorActor.GET_LOG_SIGNATURE, timeout);
                 askFuture.onComplete(new OnComplete<Object>() {
                   public void onComplete(Throwable failure, Object askResult) {
                     if (askResult != null) {
-                      final LogSignature logSignature = (LogSignatureDetectorActor.LogSignature) askResult;
+                      final LogSignature logSignature = (LogSignature) askResult;
                       if(logSignature.isAbovePermitedThreshold()) {
                         System.out.println("{ status: anomaly_detected, ip: " + logSignature.logLine.ip +
                           ", signature: " + logSignature.getLogSignatureId() + ", anomalies: " + logSignature.countAnomalies() + " }");

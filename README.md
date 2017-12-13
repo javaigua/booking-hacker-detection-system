@@ -9,3 +9,8 @@ This intrusion detection system is:
 - Is cooperative: Each node in the cluster contributes to a distributed replicated data map of detected anomalies (e.g. indexed log signatures and anomalies count).
 
 Every instance of the actor [LogSignatureDetectorActor.java](src/main/java/com/booking/security/hackertest/detector/actors/LogSignatureDetectorActor.java) shares data between nodes in an Akka Cluster by means of a _Conflict Free Replicated Data Type_ (CRDT) map.  It can make reads and updates on the local node during a network partition, converging again by means of replication on this AKKA distributed data map with 'Last Writer Wins Register' semantics.
+
+
+sbt clean "runMain com.booking.security.hackertest.detector.util.LogFileGenerator"
+sbt clean "multi-jvm:test-only com.booking.security.hackertest.detector.actors.LogSignatureDetectorActorSpec"
+sbt clean "runMain com.booking.security.hackertest.detector.HackerDetectionSystemMain" | grep -v "processing"
