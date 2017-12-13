@@ -2,7 +2,7 @@ package com.booking.security.hackertest.detector.actors
 
 import scala.concurrent.duration._
 
-import java.util.Arrays
+import scala.collection.JavaConverters._
 
 import akka.cluster.Cluster
 import akka.cluster.ddata.DistributedData
@@ -69,14 +69,15 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorAc
 
     "handle updates directly after start" in within(15.seconds) {
       runOn(node1) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       enterBarrier("updates-done")
 
       awaitAssert {
         logSignatureDetector ! LogSignatureDetectorActor.GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
-        logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, Arrays.asList()))
+        logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
+        logSignature.logLine.dates should be(setAsJavaSet(Set(fixedDate)))
       }
 
       enterBarrier("after-2")
@@ -84,21 +85,22 @@ class LogSignatureDetectorActorSpec extends MultiNodeSpec(LogSignatureDetectorAc
 
     "handle updates from different nodes in the cluster" in within(15.seconds) {
       runOn(node1) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       runOn(node2) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       runOn(node3) {
-        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, Arrays.asList(fixedDate)))
+        logSignatureDetector ! new LogSignatureDetectorActor.AddLogLine(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
       }
       enterBarrier("updates-done")
 
       awaitAssert {
         logSignatureDetector ! LogSignatureDetectorActor.GET_LOG_SIGNATURE
         val logSignature = expectMsgType[LogSignature]
-        // println(">>>>>>>>>>>>>>>>>>>>> Found data: " + logSignature.lines.asScala.toList);
-        logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, Arrays.asList()))
+        // println(">>>>>>>>>>>>>>>>>>>>> Found data: " + logSignature.logLine);
+        logSignature.logLine should be(new LogLine(fixedIp, fixedUsername, setAsJavaSet(Set(fixedDate))))
+        logSignature.logLine.dates should be(setAsJavaSet(Set(fixedDate)))
       }
 
       enterBarrier("after-3")

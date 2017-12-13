@@ -6,10 +6,8 @@ import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Arrays;
-import java.time.ZoneId;
+import java.util.HashSet;
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.LocalDateTime;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.Collection;
@@ -74,8 +72,7 @@ public class HackerDetectionSystemMain {
           String[] res = list.stream().map(ByteString::utf8String).toArray(String[]::new);
           
           // Parsed log fields
-          Long lineDate = LocalDateTime.ofInstant(Instant.ofEpochMilli(Long.valueOf(res[0])), ZoneId.systemDefault())
-            .atOffset(ZoneOffset.UTC).toInstant().toEpochMilli();
+          Long lineDate = Instant.ofEpochMilli(Long.valueOf(res[0])).toEpochMilli();
           String lineIp = res[1];
           String lineUsername = res[2];
           String lineAction = res[3];
@@ -96,7 +93,7 @@ public class HackerDetectionSystemMain {
                 
                 // Sending add log line message to actor
                 actor.tell(new LogSignatureDetectorActor.AddLogLine(
-                  new LogLine(lineIp, lineUsername, Arrays.asList(lineDate))), ActorRef.noSender());
+                  new LogLine(lineIp, lineUsername, new HashSet<>(Arrays.asList(lineDate)))), ActorRef.noSender());
                 
                 // Asking about the log line signature processing
                 Future<Object> askFuture = Patterns.ask(actor, LogSignatureDetectorActor.GET_LOG_SIGNATURE, timeout);

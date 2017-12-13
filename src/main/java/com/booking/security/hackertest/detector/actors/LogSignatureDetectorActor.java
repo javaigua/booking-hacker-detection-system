@@ -1,8 +1,9 @@
 package com.booking.security.hackertest.detector.actors;
 
-import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Optional;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.io.Serializable;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
@@ -83,11 +84,11 @@ public class LogSignatureDetectorActor extends AbstractActor {
   
   // Get data command
   private static class GetDataCommand {
-    public final ActorRef actorRef;
+    public final ActorRef replyTo;
     public final String message;
 
-    public GetDataCommand(ActorRef actorRef, String message) {
-      this.actorRef = actorRef;
+    public GetDataCommand(ActorRef replyTo, String message) {
+      this.replyTo = replyTo;
       this.message = message;
     }    
   }
@@ -97,9 +98,9 @@ public class LogSignatureDetectorActor extends AbstractActor {
     private static final long serialVersionUID = 1L;
     public final String ip;
     public final String username;
-    public final List<Long> dates;
+    public final Set<Long> dates;
 
-    public LogLine(String ip, String username, List<Long> dates) {
+    public LogLine(String ip, String username, Set<Long> dates) {
       this.ip = ip;
       this.username = username;
       this.dates = dates;
@@ -224,30 +225,27 @@ public class LogSignatureDetectorActor extends AbstractActor {
   private boolean isResponseToGetData(GetResponse<?> response) {
     return response.key().equals(dataKey) && 
         (response.getRequest().orElse(null) instanceof LogSignatureDetectorActor.GetDataCommand &&
-          ((LogSignatureDetectorActor.GetDataCommand) response.getRequest().get()).actorRef instanceof ActorRef);
+          ((LogSignatureDetectorActor.GetDataCommand) response.getRequest().get()).replyTo instanceof ActorRef);
   }
 
   private void receiveGetSuccess(GetSuccess<LWWMap<String, LogLine>> g) {
-    List<LogLine> logLines = new ArrayList<>(g.dataValue().getEntries().values());
+    Collection<LogLine> logLines = g.dataValue().getEntries().values();
     GetDataCommand command = (LogSignatureDetectorActor.GetDataCommand) g.getRequest().get();
-    
-    if (GET_LOG_SIGNATURE.equals(command.message)) {
-      ActorRef replyTo = command.actorRef;
-      if (logLines != null && logLines.size() == 1) {
-        replyTo.tell(new LogSignature(logLines.get(0)), self());
-      }
-    } else if (REMOVE_STALE_DATA.equals(command.message)) {
-      if (logLines != null && logLines.size() >= 1) {
-        removeStaleData(logLines.get(0));
+
+    if (logLines != null && logLines.size() >= 1) {
+      if (GET_LOG_SIGNATURE.equals(command.message)) {
+        command.replyTo.tell(new LogSignature((LogLine) logLines.toArray()[0]), self());
+      } else if (REMOVE_STALE_DATA.equals(command.message)) {
+        removeStaleData((LogLine) logLines.toArray()[0]);
       }
     }
   }
 
   private void removeStaleData(LogLine logLine) {
     Long minutesAgo = LocalDateTime.now().minusSeconds(STALE_DATA_SECONDS).atOffset(ZoneOffset.UTC).toInstant().toEpochMilli();
-    List<Long> newDates = logLine.dates.stream()
+    Set<Long> newDates = logLine.dates.stream()
       .filter(date -> date >= minutesAgo)
-      .collect(Collectors.toList());
+      .collect(Collectors.toSet());
     if (newDates.size() > 0) {
       LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
       Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
@@ -261,8 +259,7 @@ public class LogSignatureDetectorActor extends AbstractActor {
 
   private void receiveNotFound(NotFound<LWWMap<String, LogLine>> n) {
     GetDataCommand command = (LogSignatureDetectorActor.GetDataCommand) n.getRequest().get();
-    ActorRef replyTo = command.actorRef;
-    replyTo.tell(new LogSignature(null), self());
+    command.replyTo.tell(new LogSignature(null), self());
   }
 
   private void receiveGetFailure(GetFailure<LWWMap<String, LogLine>> f) {
@@ -288,8 +285,8 @@ public class LogSignatureDetectorActor extends AbstractActor {
   private LWWMap<String, LogLine> updateLogSignature(LWWMap<String, LogLine> data, LogLine logLine) {
     if (data.contains(logLine.getLogSignatureId())) {
       LogLine existingLogLine = data.get(logLine.getLogSignatureId()).get();
-      List<Long> newDates = Stream.concat(existingLogLine.dates.stream(), logLine.dates.stream())
-        .collect(Collectors.toList());
+      Set<Long> newDates = Stream.concat(existingLogLine.dates.stream(), logLine.dates.stream())
+        .collect(Collectors.toSet());
       LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
       return data.put(node, logLine.getLogSignatureId(), newLogLine);
     } else {
