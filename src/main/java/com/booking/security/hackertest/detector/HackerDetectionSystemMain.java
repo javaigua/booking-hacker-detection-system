@@ -39,7 +39,7 @@ import com.booking.security.hackertest.detector.actors.LogSignatureDetectorActor
 
 public class HackerDetectionSystemMain {
   public static void main(String[] args) {
-    System.out.println("{ status: starting_system }");
+    System.out.println(" status: starting_system ");
     final String DEFAULT_FILE_NAME = "login.log";
     
     // Usage and default param values
@@ -63,7 +63,7 @@ public class HackerDetectionSystemMain {
     final FiniteDuration pollingInterval = FiniteDuration.create(250, TimeUnit.MILLISECONDS);
     
     try {
-      System.out.println("{ status: detecting_anomalies, file: " + fs.getPath(fileName) + " }");
+      System.out.println(" status: detecting_anomalies, file: " + fs.getPath(fileName) + " ");
       FileTailSource.createLines(fs.getPath(fileName), maxLineSize, pollingInterval).runForeach((line) -> {
         try {
           // Parsing log line
@@ -104,10 +104,10 @@ public class HackerDetectionSystemMain {
                     if (askResult != null) {
                       final LogSignature logSignature = (LogSignature) askResult;
                       if(logSignature.isAbovePermitedThreshold()) {
-                        System.out.println("{ status: anomaly_detected, ip: " + logSignature.logLine.ip +
+                        System.out.println(" status: anomaly_detected, ip: " + logSignature.logLine.ip +
                           ", signature: " + logSignature.getLogSignatureId() + 
                           ", anomalies: " + logSignature.countAnomalies() +
-                          ", latest: " + logSignature.getLatestAnomalyDate().orElse(null) + " }");
+                          ", latest: " + logSignature.getLatestAnomalyDate().orElse(null) + " ");
                       }
                     }
                   }

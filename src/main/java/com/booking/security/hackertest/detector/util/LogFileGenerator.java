@@ -23,7 +23,7 @@ public class LogFileGenerator {
     FileWriter fileWriter = null;
     
     try {
-      System.out.println("{ status: generating_log_file, file: " + fileName + " }");
+      System.out.println(" status: generating_log_file, file: " + fileName + " ");
       ThreadLocalRandom r = ThreadLocalRandom.current();
       File file = new File(fileName);
       

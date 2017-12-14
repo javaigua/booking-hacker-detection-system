@@ -270,9 +270,11 @@ public class LogSignatureDetectorActor extends AbstractActor {
       Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
         logSignature -> logSignature.put(node, logLine.getLogSignatureId(), newLogLine));
       replicator.tell(update, self());
+      // System.out.println(" status: removed_stale_partial_data, logLine: " + logLine.toString());
     } else {
       Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
         logSignature -> logSignature.remove(node, logLine.getLogSignatureId()));
+      // System.out.println(" status: removed_stale_complete_data, logLine: " + logLine.toString());
     }
   }
 
@@ -296,7 +298,7 @@ public class LogSignatureDetectorActor extends AbstractActor {
   }
 
   private void receiveAddLogLine(AddLogLine add) {
-    // System.out.println("{ status: processing_add_Log_line, newLogLine: " + add.logLine.toString() + " latest: " + add.logLine.getLatestDate().orElse(null) + " }");
+    // System.out.println(" status: processing_add_Log_line, newLogLine: " + add.logLine.toString() + " latest: " + add.logLine.getLatestDate().orElse(null) + " ");
     Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
         logSignature -> updateLogSignature(logSignature, add.logLine));
     replicator.tell(update, self());
@@ -317,7 +319,7 @@ public class LogSignatureDetectorActor extends AbstractActor {
         .collect(Collectors.toSet());
     }
     LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
-    // System.out.println("{ status: processing_added_optimized_Log_line, newLogLine: " + newLogLine.toString() + " latest: " + newLogLine.getLatestDate().orElse(null) + " }");
+    // System.out.println(" status: processing_added_optimized_Log_line, newLogLine: " + newLogLine.toString() + " latest: " + newLogLine.getLatestDate().orElse(null) + " ");
     return data.put(node, logLine.getLogSignatureId(), newLogLine);
   }
 
