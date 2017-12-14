@@ -3,6 +3,7 @@ package com.booking.security.hackertest.detector.actors;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.Comparator;
 import java.util.Collection;
 import java.io.Serializable;
 import java.util.stream.Stream;
@@ -78,6 +79,13 @@ public class LogSignatureDetectorActor extends AbstractActor {
       return 0;
     }
     
+    public Optional<Instant> getLatestAnomalyDate() {
+      if (this.countAnomalies() > 0) {
+        return logLine.getLatestDate();
+      }
+      return Optional.empty();
+    }
+    
     public boolean isAbovePermitedThreshold() {
       return countAnomalies() >= 5;
     }
@@ -117,6 +125,15 @@ public class LogSignatureDetectorActor extends AbstractActor {
         return dates.size();
       }
       return 0;
+    }
+    
+    public Optional<Instant> getLatestDate() {
+      if (dates != null && dates.size() > 0) {
+        return Optional.of(
+          Instant.ofEpochMilli(
+            dates.stream().max(Long::compare).get()));
+      }
+      return Optional.empty();
     }
 
     @Override
@@ -279,7 +296,7 @@ public class LogSignatureDetectorActor extends AbstractActor {
   }
 
   private void receiveAddLogLine(AddLogLine add) {
-    // System.out.println("{ status: processing_add_Log_line, newLogLine: " + add.logLine.toString() + " }");
+    // System.out.println("{ status: processing_add_Log_line, newLogLine: " + add.logLine.toString() + " latest: " + add.logLine.getLatestDate().orElse(null) + " }");
     Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
         logSignature -> updateLogSignature(logSignature, add.logLine));
     replicator.tell(update, self());
@@ -300,7 +317,7 @@ public class LogSignatureDetectorActor extends AbstractActor {
         .collect(Collectors.toSet());
     }
     LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
-    // System.out.println("{ status: processing_added_optimized_Log_line, newLogLine: " + newLogLine.toString() + " }");
+    // System.out.println("{ status: processing_added_optimized_Log_line, newLogLine: " + newLogLine.toString() + " latest: " + newLogLine.getLatestDate().orElse(null) + " }");
     return data.put(node, logLine.getLogSignatureId(), newLogLine);
   }
 

@@ -7,10 +7,12 @@ import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 import java.time.Instant;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.Collection;
+import java.util.stream.Collectors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletionStage;
 
@@ -103,7 +105,9 @@ public class HackerDetectionSystemMain {
                       final LogSignature logSignature = (LogSignature) askResult;
                       if(logSignature.isAbovePermitedThreshold()) {
                         System.out.println("{ status: anomaly_detected, ip: " + logSignature.logLine.ip +
-                          ", signature: " + logSignature.getLogSignatureId() + ", anomalies: " + logSignature.countAnomalies() + " }");
+                          ", signature: " + logSignature.getLogSignatureId() + 
+                          ", anomalies: " + logSignature.countAnomalies() +
+                          ", latest: " + logSignature.getLatestAnomalyDate().orElse(null) + " }");
                       }
                     }
                   }
