@@ -279,24 +279,29 @@ public class LogSignatureDetectorActor extends AbstractActor {
   }
 
   private void receiveAddLogLine(AddLogLine add) {
-    System.out.println("{ status: processing_add_Log_line, logLine: " + add.logLine.toString() + " }");
+    // System.out.println("{ status: processing_add_Log_line, newLogLine: " + add.logLine.toString() + " }");
     Update<LWWMap<String, LogLine>> update = new Update<>(dataKey, LWWMap.create(), writeMajority,
         logSignature -> updateLogSignature(logSignature, add.logLine));
     replicator.tell(update, self());
   }
 
   private LWWMap<String, LogLine> updateLogSignature(LWWMap<String, LogLine> data, LogLine logLine) {
+    Set<Long> newDates;
     if (data.contains(logLine.getLogSignatureId())) {
       LogLine existingLogLine = data.get(logLine.getLogSignatureId()).get();
       // concat and truncate dates to minute precision so we avoid storing more than needed
-      Set<Long> newDates = Stream.concat(existingLogLine.dates.stream(), logLine.dates.stream())
+      newDates = Stream.concat(existingLogLine.dates.stream(), logLine.dates.stream())
         .map(date -> Instant.ofEpochMilli(date).truncatedTo(ChronoUnit.MINUTES).toEpochMilli())
         .collect(Collectors.toSet());
-      LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
-      return data.put(node, logLine.getLogSignatureId(), newLogLine);
     } else {
-      return data.put(node, logLine.getLogSignatureId(), logLine);
+      // only truncate dates to minute precision so we avoid storing more than needed
+      newDates = logLine.dates.stream()
+        .map(date -> Instant.ofEpochMilli(date).truncatedTo(ChronoUnit.MINUTES).toEpochMilli())
+        .collect(Collectors.toSet());
     }
+    LogLine newLogLine = new LogLine(logLine.ip, logLine.username, newDates);
+    // System.out.println("{ status: processing_added_optimized_Log_line, newLogLine: " + newLogLine.toString() + " }");
+    return data.put(node, logLine.getLogSignatureId(), newLogLine);
   }
 
   // receiver for other messages
