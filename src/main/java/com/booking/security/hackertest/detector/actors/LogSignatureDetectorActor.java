@@ -179,7 +179,7 @@ public class LogSignatureDetectorActor extends AbstractActor {
 
     @Override
     public String toString() {
-      return "LogLine [ip=" + ip + 
+      return "[ip=" + ip + 
         ", username=" + username + 
         ", dates=[" + dates.stream().map(d -> d.toString()).collect(Collectors.joining(", ")) + "]]";
     }
