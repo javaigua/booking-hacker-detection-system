@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.util.Collection;
@@ -63,10 +64,11 @@ public class HackerDetectionSystemMain {
     final FiniteDuration pollingInterval = FiniteDuration.create(250, TimeUnit.MILLISECONDS);
     
     try {
-      System.out.println(" status: detecting_anomalies, file: " + fs.getPath(fileName) + " ");
+      System.out.println(" status: detecting_anomalies, file: " + fs.getPath(fileName));
+      // Starting file tail source (a reactive streamming Alpakka integration)
       FileTailSource.createLines(fs.getPath(fileName), maxLineSize, pollingInterval).runForeach((line) -> {
         try {
-          // Parsing log line
+          // Parsing the streamed log line
           CompletionStage<Collection<ByteString>> completionStage = Source.single(ByteString.fromString(line))
             .via(CsvParsing.lineScanner())
             .runWith(Sink.head(), materializer);
@@ -74,7 +76,7 @@ public class HackerDetectionSystemMain {
           String[] res = list.stream().map(ByteString::utf8String).toArray(String[]::new);
           
           // Parsed log fields
-          Long lineDate = Instant.ofEpochMilli(Long.valueOf(res[0])).toEpochMilli();
+          Long lineDate = Instant.ofEpochMilli(Long.valueOf(res[0])).atOffset(ZoneOffset.UTC).toInstant().toEpochMilli();
           String lineIp = res[1];
           String lineUsername = res[2];
           String lineAction = res[3];
@@ -85,7 +87,8 @@ public class HackerDetectionSystemMain {
           
           // Processing only failed ones
           if (!"SUCCESS".equalsIgnoreCase(lineAction)) {
-            // Creating or getting actor for log signature
+            
+            // Creating or getting actor for the log signature
             Future<ActorRef> actorFuture = system.actorSelection("/user/" + logSignatureId).resolveOne(timeout);
             actorFuture.onComplete(new OnComplete<ActorRef>() {
               public void onComplete(Throwable failure, ActorRef actorResult) {
@@ -104,10 +107,12 @@ public class HackerDetectionSystemMain {
                     if (askResult != null) {
                       final LogSignature logSignature = (LogSignature) askResult;
                       if(logSignature.isAbovePermitedThreshold()) {
-                        System.out.println(" status: anomaly_detected, ip: " + logSignature.logLine.ip +
-                          ", signature: " + logSignature.getLogSignatureId() + 
-                          ", anomalies: " + logSignature.countAnomalies() +
-                          ", latest: " + logSignature.getLatestAnomalyDate().orElse(null) + " ");
+                        System.out.println( new StringBuffer(" status: anomaly_detected")
+                          .append(", IP: ").append(logSignature.getIP())
+                          .append(", signature: ").append(logSignature.getLogSignatureId())
+                          .append(", anomalies: ").append(logSignature.countAnomalies())
+                          .append(", latest: ").append(logSignature.getLatestAnomalyDate().orElse(null))
+                          .toString());
                       }
                     }
                   }
@@ -116,11 +121,11 @@ public class HackerDetectionSystemMain {
             }, ec);
           }
         } catch (Exception e) {
-          System.out.println(e.toString());
+          System.out.println(" status: error_detecting_anomalies, error: " + e.toString());
         }
       }, materializer);
     } catch (Exception e) {
-      System.out.println(e.toString());
+      System.out.println(" status: error_detecting_anomalies, error: " + e.toString());
     }
   }
 }

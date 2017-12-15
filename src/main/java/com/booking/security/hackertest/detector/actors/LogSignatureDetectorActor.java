@@ -72,6 +72,13 @@ public class LogSignatureDetectorActor extends AbstractActor {
       return null;
     }
     
+    public String getIP() {
+      if (logLine != null) {
+        return logLine.ip;
+      }
+      return null;
+    }
+    
     public int countAnomalies() {
       if (logLine != null) {
         return logLine.getDatesCount();
