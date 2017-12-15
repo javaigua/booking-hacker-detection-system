@@ -18,16 +18,9 @@ sbt clean "runMain com.booking.security.hackertest.detector.HackerDetectionSyste
 ### To run (the main actor system) on a cluster of nodes
 // TODO: Add development/staging/production AKKA config files.
 
-## Test
-
-## Unit tests
-
-sbt clean test
-
-### Tests multi JVM
+## Testing (Multi JVM)
 sbt clean "multi-jvm:test-only com.booking.security.hackertest.detector.actors.LogSignatureDetectorActorSpec"
-
 
 ## Implementations details
 
-Every instance of the actor [LogSignatureDetectorActor.java](src/main/java/com/booking/security/hackertest/detector/actors/LogSignatureDetectorActor.java) shares data between nodes in an Akka Cluster by means of a _Conflict Free Replicated Data Type_ (CRDT) map.  It can make reads and updates on the local node during a network partition, converging again by means of replication on this AKKA distributed data map with 'Last Writer Wins Register' semantics.
+Every instance of the actor [LogSignatureDetectorActor.java](src/main/java/com/booking/security/hackertest/detector/actors/LogSignatureDetectorActor.java) shares data between nodes in an Akka Cluster by means of a _Conflict Free Replicated Data Type_ (CRDT) map.  It can make reads and updates on the local node during a network partition, converging again by means of replication on this AKKA distributed data map, with 'Last Writer Wins Register' semantics.

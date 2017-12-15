@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class LogFileGenerator {
   public static void main(String[] args) {
     // Usage and default param values
-    final String DEFAULT_FILE_NAME = "login.log";
+    final String DEFAULT_FILE_NAME = "login.log.sample";
     String fileName = DEFAULT_FILE_NAME;
     if(args.length != 0 && args.length > 1) {
       throw new IllegalArgumentException("Usage: LogFileGenerator [path]");
@@ -23,14 +23,15 @@ public class LogFileGenerator {
     FileWriter fileWriter = null;
     
     try {
-      System.out.println(" status: generating_log_file, file: " + fileName + " ");
+      System.out.println("\n status: log_file_generaration, file: " + fileName);
       ThreadLocalRandom r = ThreadLocalRandom.current();
       File file = new File(fileName);
       
       fileWriter = new FileWriter(file.getAbsoluteFile(), true);
       bufferedWriter = new BufferedWriter(fileWriter);
       
-      for(int i = 0; i < 100000; i++) {
+      int rows = 1000000;
+      for(int i = 0; i < rows; i++) {
         // file parts
         Long lineDate = LocalDateTime.now().atOffset(ZoneOffset.UTC).toInstant().toEpochMilli();
         String lineIp = new StringBuffer().append(r.nextInt(1, 256)).append(".").append(r.nextInt(1, 128))
@@ -54,6 +55,7 @@ public class LogFileGenerator {
             .toString());
         bufferedWriter.newLine();
       }
+      System.out.println(" status: log_file_generation_finished, rows: " + rows + "\n");
     } catch (Exception e) {
       System.out.println(e.toString());
     } finally {

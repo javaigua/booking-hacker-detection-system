@@ -40,8 +40,8 @@ import com.booking.security.hackertest.detector.actors.LogSignatureDetectorActor
 
 public class HackerDetectionSystemMain {
   public static void main(String[] args) {
-    System.out.println(" status: starting_system ");
-    final String DEFAULT_FILE_NAME = "login.log";
+    System.out.println("\n status: starting_system ");
+    final String DEFAULT_FILE_NAME = "login.log.sample";
     
     // Usage and default param values
     String fileName = DEFAULT_FILE_NAME;
